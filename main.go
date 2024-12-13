@@ -45,8 +45,11 @@ func main() {
 
 	now := time.Now().UTC()
 
+	newId, _ := uuid2.NewV7()
+
 	newProd := Product{
 		BaseModel: BaseModel{
+			Id:        newId,
 			Status:    "activated",
 			CreatedAt: now,
 			UpdatedAt: now,
@@ -77,29 +80,33 @@ func main() {
 
 	if err := db.
 		Table(Product{}.TableName()).
+		Where("status not in (?)", []string{"deactivated"}).
 		Limit(10).
+		Offset(10).
+		Order("id desc").
 		Find(&prods).Error; err != nil {
 		log.Println(err)
 	}
-	log.Println("Products: ", prods)
+
+	log.Println("Products:", prods)
 
 	//oldProduct.Name = "Capuchino"
 
-	emptyStr := "Latte"
-
-	if err := db.
-		Table(Product{}.TableName()).
-		Where("id = ?", 3).
-		Updates(ProductUpdate{Name: &emptyStr}).Error; err != nil {
-		log.Println(err)
-	}
-
-	if err := db.
-		Table(Product{}.TableName()).
-		Where("status not in (?)", []string{"deactivated"}).
-		Delete(nil).Error; err != nil {
-		log.Println(err)
-	}
+	//emptyStr := "Latte"
+	//
+	//if err := db.
+	//	Table(Product{}.TableName()).
+	//	Where("id = ?", 3).
+	//	Updates(ProductUpdate{Name: &emptyStr}).Error; err != nil {
+	//	log.Println(err)
+	//}
+	//
+	//if err := db.
+	//	Table(Product{}.TableName()).
+	//	Where("status not in (?)", []string{"deactivated"}).
+	//	Delete(nil).Error; err != nil {
+	//	log.Println(err)
+	//}
 
 	uuid, _ := uuid2.NewV7()
 
