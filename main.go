@@ -1,39 +1,16 @@
 package main
 
 import (
-	uuid2 "github.com/google/uuid"
+	"bankingSystem/module/product/controller"
+	"bankingSystem/module/product/domain/usecase"
+	productmysql "bankingSystem/module/product/repository/mysql"
+	"github.com/gin-gonic/gin"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"log"
+	"net/http"
 	"os"
-	"time"
 )
-
-type BaseModel struct {
-	Id        uuid2.UUID `gorm:"column:id;"`
-	Status    string     `gorm:"column:status;"`
-	CreatedAt time.Time  `gorm:"column:created_at;"`
-	UpdatedAt time.Time  `gorm:"column:updated_at;"`
-}
-
-type Product struct {
-	BaseModel
-	CategoryId int    `gorm:"column:category_id;"`
-	Name       string `gorm:"column:name"`
-	//Image       any    `gorm:"column:image"`
-	Type        string `gorm:"column:type"`
-	Description string `gorm:"column:description"`
-}
-
-type ProductUpdate struct {
-	Name        *string `gorm:"column:name"`
-	CategoryId  *int    `gorm:"column:category_id;"`
-	Status      *string `gorm:"column:status;"`
-	Type        *string `gorm:"column:type"`
-	Description *string `gorm:"column:description"`
-}
-
-func (Product) TableName() string { return "products" }
 
 func main() {
 	dsn := os.Getenv("DB_DSN")
@@ -43,72 +20,26 @@ func main() {
 		log.Fatal(err)
 	}
 
-	now := time.Now().UTC()
+	r := gin.Default()
 
-	newId, _ := uuid2.NewV7()
+	r.GET("/ping", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "pong",
+		})
+	})
 
-	newProd := Product{
-		BaseModel: BaseModel{
-			Id:        newId,
-			Status:    "activated",
-			CreatedAt: now,
-			UpdatedAt: now,
-		},
-		CategoryId: 1,
-		Name:       "Latte",
-		//Image:       nil,
-		Type:        "drink",
-		Description: "",
+	// Setup dependencies
+	repo := productmysql.NewMysqlRepository(db)
+	useCase := usecase.NewCreateProductUseCase(repo)
+	api := controller.NewAPIController(useCase)
+
+	v1 := r.Group("/v1")
+	{
+		products := v1.Group("/products")
+		{
+			products.POST("", api.CreateProductAPI(db))
+		}
 	}
 
-	if err := db.Table("products").Create(&newProd).Error; err != nil {
-		log.Println(err)
-	}
-
-	var oldProduct Product
-
-	if err := db.
-		Table(Product{}.TableName()).
-		Where("id = ", 3).
-		First(&oldProduct).Error; err != nil {
-		log.Println(err)
-	}
-
-	log.Println("Product ID:", oldProduct)
-
-	var prods []Product
-
-	if err := db.
-		Table(Product{}.TableName()).
-		Where("status not in (?)", []string{"deactivated"}).
-		Limit(10).
-		Offset(10).
-		Order("id desc").
-		Find(&prods).Error; err != nil {
-		log.Println(err)
-	}
-
-	log.Println("Products:", prods)
-
-	//oldProduct.Name = "Capuchino"
-
-	//emptyStr := "Latte"
-	//
-	//if err := db.
-	//	Table(Product{}.TableName()).
-	//	Where("id = ?", 3).
-	//	Updates(ProductUpdate{Name: &emptyStr}).Error; err != nil {
-	//	log.Println(err)
-	//}
-	//
-	//if err := db.
-	//	Table(Product{}.TableName()).
-	//	Where("status not in (?)", []string{"deactivated"}).
-	//	Delete(nil).Error; err != nil {
-	//	log.Println(err)
-	//}
-
-	uuid, _ := uuid2.NewV7()
-
-	log.Println(uuid.String())
+	r.Run(":8080") // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }
