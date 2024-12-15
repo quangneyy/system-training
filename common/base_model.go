@@ -28,3 +28,7 @@ func GenUUID() uuid2.UUID {
 	newID, _ := uuid2.NewV7()
 	return newID
 }
+
+func ParseUUID(s string) uuid2.UUID {
+	return uuid2.MustParse(s)
+}

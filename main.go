@@ -1,9 +1,13 @@
 package main
 
 import (
+	"bankingSystem/common"
 	"bankingSystem/module/product/controller"
-	"bankingSystem/module/product/domain/usecase"
+	productusecase "bankingSystem/module/product/domain/usecase"
 	productmysql "bankingSystem/module/product/repository/mysql"
+	"bankingSystem/module/user/infras/httpservice"
+	"bankingSystem/module/user/infras/repository"
+	"bankingSystem/module/user/usecase"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -30,7 +34,7 @@ func main() {
 
 	// Setup dependencies
 	repo := productmysql.NewMysqlRepository(db)
-	useCase := usecase.NewCreateProductUseCase(repo)
+	useCase := productusecase.NewCreateProductUseCase(repo)
 	api := controller.NewAPIController(useCase)
 
 	v1 := r.Group("/v1")
@@ -40,6 +44,9 @@ func main() {
 			products.POST("", api.CreateProductAPI(db))
 		}
 	}
+
+	userUC := usecase.NewUseCase(repository.NewUserRepo(db), &common.Hasher{})
+	httpservice.NewUserService(userUC).Routes(v1)
 
 	r.Run(":8080") // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }
