@@ -14,6 +14,11 @@ type UseCase interface {
 type Hasher interface {
 	RandomStr(length int) (string, error)
 	HashPassword(salt, password string) (string, error)
+	CompareHashPassword(hashedPassword, salt, password string) bool
+}
+
+type TokenProvider interface {
+	IssueToken(ctx context.Context, id, sub string) (token string, err error)
 }
 
 type useCase struct {
